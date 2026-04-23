@@ -2,8 +2,8 @@
 > These are reverse-engineered files from Hatena's servers (Last updated Febuary 2012)
 ---
 While at th moment while this build is happening, go to Sudomemo!
-# Primary DNS
+Primary DNS
 > 104.248.000.110
-# Secondary DNS
+Secondary DNS
 > 008.008.008.008
 ---
