@@ -23,6 +23,11 @@
 
 <-- channels.ugo contains these names -->
 
-
-
-
+Animation/Comics
+Characters
+Stories
+Stick Figures
+Music
+Games
+Chat/Collaboration
+Weekly Topic: Thank You
