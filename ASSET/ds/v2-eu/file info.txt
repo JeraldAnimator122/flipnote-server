@@ -1,0 +1,12 @@
+<-- index.ugo contains these button names from top to bottom-->
+
+·All Flipnotes <--goes to directory "/movies/preferred.ugo"
+·Announcement <-- {{ i dont know where this is at the moment! }}
+·Channels <-- goes to: "/channels.ugo"
+·News <-- goes to directory: "/help/news.htm"
+·Creator's Room <-- goes to directory: "/96FAD88031C49DE1/profile.htm"
+·Special Room <-- goes to: "/special_room.htm"
+·Help <-- {{ i dont know where this is at the moment! }}
+·Command Search <-- goes to: "ugomemo:\\command"
+
+<-- inbox.ugo contains these names or letters (mail) -->
