@@ -17,4 +17,12 @@
 
 <-- information.ugo contains these names -->
 
+·Announcement
+·@End of Service Info
+·@Transfer Flipnotes
+
+<-- channels.ugo contains these names -->
+
+
+
 
