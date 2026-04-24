@@ -19,15 +19,23 @@ def validate_dsi():
     if 'Nintendo DSi' in ua:
         logger.info(f'[CON] Verified DSi Connection: {request.remote_addr}')
 
-# 1. NINTENDO CONNECTION TEST (conntest.nintendowifi.net)
 @app.route('/testconn.html')
-@app.route('/ok.html')
-def conntest():
-    # This header is the 'secret sauce' for 3rd party servers.
-    # It tells the DSi firmware the internet is active.
-    resp = Response("<html><body>ok</body></html>")
-    resp.headers['X-Organization'] = 'Nintendo'
-    return resp
+def dsi_replica_response():
+    # 1. Create the 'ok' body the DSi expects
+    # We use a simple string because the DSi doesn't need a full HTML structure
+    content = "<html><title>Return Code 200</title><body>ok</body></html>"
+    
+    # 2. Build the response with the 'Strong' Nintendo Headers
+    response = Response(content, status=200, mimetype='text/html')
+    
+    # These headers are what make it a 'Strong' resolver. 
+    # They mimic the original Nintendo server behavior perfectly.
+    response.headers['X-Organization'] = 'Nintendo'
+    response.headers['Server'] = 'Nintendo-WFC'
+    response.headers['Connection'] = 'Close'
+    
+    logger.info(f"[RESOLVER] Replica '200 OK' sent to DSi")
+    return response
 
 # 2. NAS AUTHENTICATION (nas.nintendowifi.net)
 # This mimics the login server that shut down in 2014.
