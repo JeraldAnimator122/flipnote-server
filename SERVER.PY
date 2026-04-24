@@ -1,65 +1,68 @@
 from flask import Flask, request, send_from_directory, Response
 import os
 import logging
-import socket
-import re
 
 app = Flask(__name__)
+ASSET_FOLDER = os.path.abspath('ASSET')
 
-ASSET_FOLDER = 'ASSET'  # Update this path to your actual ASSET folder location
-
-# Set up logging
+# Logging set to mimic old-school server consoles
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger()
 
-def get_local_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        # This doesn't have to be reachable
-        s.connect(('10.254.254.254', 1))
-        IP = s.getsockname()[0]
-    except Exception:
-        IP = '127.0.0.1'
-    finally:
-        s.close()
-    return IP
+@app.before_request
+def validate_dsi():
+    """
+    Strong Resolver Logic: 
+    Checks if the request is actually coming from a Nintendo console.
+    """
+    ua = request.headers.get('User-Agent', '')
+    if 'Nintendo DSi' in ua:
+        logger.info(f'[CON] Verified DSi Connection: {request.remote_addr}')
 
-@app.route('/<path:path>', methods=['GET'])
-def proxy(path):
-    logger.info(f'[REQ] DSi GET requested {request.url}')
+# 1. NINTENDO CONNECTION TEST (conntest.nintendowifi.net)
+@app.route('/testconn.html')
+@app.route('/ok.html')
+def conntest():
+    # This header is the 'secret sauce' for 3rd party servers.
+    # It tells the DSi firmware the internet is active.
+    resp = Response("<html><body>ok</body></html>")
+    resp.headers['X-Organization'] = 'Nintendo'
+    return resp
+
+# 2. NAS AUTHENTICATION (nas.nintendowifi.net)
+# This mimics the login server that shut down in 2014.
+@app.route('/ac', methods=['POST'])
+@app.route('/pr', methods=['POST'])
+def nas_login():
+    logger.info('[NAS] Handling Authentication Handshake')
+    # Returns a dummy challenge/token so the DSi thinks it's logged in.
+    return "challenge=abcdefg12345&token=hijklmn67890"
+
+# 3. HATENA / ASSET RESOLVER
+@app.route('/<path:path>')
+def resolve_assets(path):
+    # Regional fix (Map all regions to EU assets)
+    path = path.replace('ds/v2-us/', 'ds/v2-eu/').replace('ds/v2-jp/', 'ds/v2-eu/')
     
-    # Handle requests for ds/v2-us and ds/v2-jp
-    if path.startswith('ds/v2-us/') or path.startswith('ds/v2-jp/'):
-        path = path.replace('ds/v2-us/', 'ds/v2-eu/').replace('ds/v2-jp/', 'ds/v2-eu/')
-    
-    # Check if the request matches the pattern ds/v2-eu/\d{16}/
-    match = re.match(r'ds/v2-eu/\d{16}/', path)
-    if match:
-        # Redirect to ASSET/ds/v2-eu/user/
-        new_path = os.path.join('ds/v2-eu/user/', os.path.basename(path))
-        file_path = os.path.join(ASSET_FOLDER, new_path)
-    else:
-        # Normal path handling
-        file_path = os.path.join(ASSET_FOLDER, path)
+    # Handle the specific user-ID folder structure
+    if 'ds/v2-eu/' in path and len(path.split('/')) > 3:
+        # Re-route to the user folder logic used in 2014 hacks
+        parts = path.split('/')
+        filename = parts[-1]
+        path = os.path.join('ds/v2-eu/user/', filename)
+
+    file_path = os.path.join(ASSET_FOLDER, path)
     
     if os.path.isfile(file_path):
-        logger.info(f'[RES] Server responded {file_path}')
-        directory, filename = os.path.split(file_path)
-        response = send_from_directory(directory, filename)
-        logger.info(f'[CODE] Returned Code {response.status_code}')
-        return response
-    else:
-        logger.warning(f'[RES] File not found: {file_path}')
-        response = Response("File not found", status=404)
-        logger.info(f'[CODE] Returned Code {response.status_code}')
-        return response
+        logger.info(f'[GET] Serving: {path}')
+        return send_from_directory(os.path.dirname(file_path), os.path.basename(file_path))
+    
+    logger.warning(f'[404] Missing Asset: {path}')
+    return Response("Not Found", status=404)
 
 if __name__ == '__main__':
-    local_ip = get_local_ip()
-    logger.info(f'Hatena Server proxy running at {local_ip} on Port 8080.')
-    logger.info('Running on:')
-    logger.info(f'* (0.0.0.0)')
-    logger.info(f'* http://127.0.0.1:8080')
-    logger.info(f'* http://{local_ip}:8080')
-    app.run(host='0.0.0.0', port=8080)
-
+    # Running on Port 80 is non-negotiable for the 'Strong' setup
+    # because the DSi doesn't support custom ports for system domains.
+    print("Sudomemo-style Proxy Server Active")
+    print("Direct your DSi Primary DNS to this machine's IP.")
+    app.run(host='0.0.0.0', port=80)
